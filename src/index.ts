@@ -1,59 +1,85 @@
-import fetch from 'node-fetch';
+import axios from 'axios';
+import { ModuSignPaths } from './path';
+import { MODUSIGN_PARMAS } from './type';
+
+type TParams = any;
+
+type TModuSignConstructorParams = {
+  apiKey?: string;
+  email?: string;
+  showLog?: boolean;
+};
 
 export class ModuSign {
-  public endPoint = {
-    requestWithTemplate:
-      'https://api.modusign.co.kr/documents/request-with-template',
-  };
+  private hashApiKey: string;
+  public showLog = false;
+  private apiKey: string;
+  private email: string;
 
-  constructor(private apiKey: string = process.env.MODU_SIGN_KEY || '') {
-    if (!apiKey) throw Error('you need to provide MODU_SIGN_KEY at env');
+  constructor({
+    apiKey = process.env.MODU_SIGN_API_KEY,
+    email = process.env.MODU_SIGN_EMAIL,
+    showLog,
+  }: TModuSignConstructorParams = {}) {
+    if (!apiKey) throw Error('you need to provide MODU_SIGN_API_KEY at env');
+    if (!email) throw Error('you need to provide MODU_SIGN_EMAIL at env');
+    this.apiKey = apiKey;
+    this.email = email;
+    this.showLog = !!showLog;
+    this.hashApiKey = this.generateKey();
   }
 
-  public sendTemplate(
+  private log(...logmessage: any) {
+    if (this.showLog) {
+      console.log(...logmessage);
+    }
+  }
+
+  public toBasic64(str: string) {
+    return Buffer.from(str).toString('base64');
+  }
+
+  public generateKey() {
+    return this.toBasic64(this.email + ':' + this.apiKey);
+  }
+
+  public async call(pathKey: ModuSignPaths.apiPaths, params: TParams) {
+    this.log('endPoint:', ModuSignPaths.get(pathKey));
+    const result = await axios
+      .post(ModuSignPaths.get(pathKey), params, {
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${this.hashApiKey}`,
+        },
+      })
+      .catch(e => {
+        console.error('erorr', e);
+        console.error('response.data', e.response.data);
+      })
+      .then(r => r);
+
+    if (!result) throw Error('result is not exsit');
+
+    this.log('data::', params);
+    this.log('call-result::', result);
+
+    const resultData = result.data;
+    this.log('resultData', resultData);
+    return resultData;
+  }
+
+  public async sendTemplate(
     templateId: string,
-    TempalteSendParam: TempalteSendDocument
+    TempalteSendParam: MODUSIGN_PARMAS.TempalteSendDocument
   ) {
-    const options = {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        document: TempalteSendParam,
-        templateId,
-      }),
-    };
+    return await this.call('request-with-template', {
+      templateId,
+      document: TempalteSendParam,
+    });
+  }
 
-    fetch(this.endPoint.requestWithTemplate, options)
-      .then(res => res.json())
-      .then(json => console.log(json))
-      .catch(err => console.error('error:' + err));
+  public async getDocuments() {
+    // return await this.call()
   }
 }
-
-export enum ModuSign_SendMethod {
-  'KAKAO' = 'KAKAO',
-  'EMAIL' = 'EMAIL',
-}
-
-type TEmail = string;
-
-export type TempalteSendDocument = {
-  participantMappings: {
-    excluded: boolean;
-    signingMethod: { type: ModuSign_SendMethod; value: TEmail };
-    requesterMessage: string;
-    signingDuration: number;
-    name: string;
-  }[];
-  title: string;
-  excluded: boolean;
-  signingMethod: {
-    type: string;
-    value: string;
-  };
-  name: string;
-};
