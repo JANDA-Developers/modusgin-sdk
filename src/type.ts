@@ -33,4 +33,11 @@ export declare module MODUSIGN_PARMAS {
     title: string;
     fileOpenPassword?: string;
   };
+
+  type DocumentsListLookUpParams = {
+    offset: number;
+    limit: number;
+    metadatas: string;
+    filter?: string;
+  };
 }

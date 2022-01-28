@@ -1,6 +1,7 @@
-import { ModuSign } from '../src/index';
 import dotenv from 'dotenv';
 import path from 'path';
+import { ModuSign } from '../src/index';
+import { APIHelper } from '../src/helper';
 import { ModuSign_SendMethod } from '../src/type';
 
 const TEST_TEAMPLTES_IDS = {
@@ -12,16 +13,22 @@ dotenv.config({
 });
 
 const BIZ = new ModuSign({ showLog: true });
+const helper = new APIHelper({ showLog: true });
 
 describe('hashKeyTest', () => {
   it('works', async () => {
-    await BIZ.generateKey();
+    const key = helper.generateKey();
+    expect(key).toBe(
+      Buffer.from(
+        `${process.env.MODU_SIGN_EMAIL}:${process.env.MODU_SIGN_API_KEY}`
+      ).toString('base64')
+    );
   });
 });
 
 describe('Email Send Test', () => {
   it('works', async () => {
-    await BIZ.sendTemplate(TEST_TEAMPLTES_IDS.DUMMY, {
+    const ret = await BIZ.sendTemplate(TEST_TEAMPLTES_IDS.DUMMY, {
       title: 'Hello ModuSign',
       participantMappings: [
         {
@@ -37,5 +44,68 @@ describe('Email Send Test', () => {
         },
       ],
     });
+    const { statusCode } = ret;
+
+    console.log();
+
+    expect(statusCode).toBe(201);
+  });
+});
+
+describe('Document Read Test', () => {
+  it('documents', async () => {
+    const meta = JSON.stringify({
+      담당자: '김모두',
+    });
+
+    const params = {
+      offset: 0,
+      limit: 10,
+      metadatas: meta,
+      filter: "detailStatus eq 'COMPLETED'",
+    };
+
+    const ret = await BIZ.getDocuments(params);
+
+    const { statusCode } = ret;
+    expect(statusCode).toBe(200);
+  });
+});
+
+describe('lookup usage test', () => {
+  it('usages', async () => {
+    const from = '2021-09-01T00:00:00.000%2B0900';
+    const to = '2021-09-30T23:59:59.999%2B0900';
+    const result = await BIZ.lookUpUsage(from, to);
+    const { statusCode } = result;
+    expect(statusCode).toBe(200);
+  });
+});
+
+describe('lookUp templates', () => {
+  it('lookup template', async () => {
+    const offset = 0;
+    const limit = 10;
+    const result = await BIZ.lookUpTemplates(offset, limit);
+    const { statusCode } = result;
+    expect(statusCode).toBe(200);
+  });
+});
+
+describe('remind signing', () => {
+  it(' remind-signing', async () => {
+    const documentId = 1;
+    const result = await BIZ.remindSignIng(documentId);
+    const { statusCode } = result;
+    expect(statusCode).toBe(200);
+  });
+});
+
+describe('lookUpParticipantFields', () => {
+  it('/documents/documentId/participant-fields', async () => {
+    const documentId = 1;
+    const result = await BIZ.lookUpParticipantFields(documentId);
+    const { statusCode } = result;
+    expect(statusCode).toBe(200);
   });
 });

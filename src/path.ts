@@ -2,7 +2,9 @@ const paths = {
   host: 'https://api.modusign.co.kr',
   api: {
     'request-with-template': '/documents/request-with-template',
-    documents: '',
+    documents: '/documents',
+    usages: `/usages`,
+    templates: '/templates',
   },
 };
 
