@@ -1,3 +1,4 @@
+import { ModuSignPath } from './path';
 import { APIHelper } from './helper';
 import { MODUSIGN_PARMAS } from './type';
 
@@ -30,7 +31,7 @@ export class ModuSign {
     templateId: string,
     TempalteSendParam: MODUSIGN_PARMAS.TempalteSendDocument
   ) {
-    return await this.apiHelper.post('request-with-template', {
+    return await this.apiHelper.post(ModuSignPath['request-with-template'], {
       params: {
         templateId,
         document: TempalteSendParam,
@@ -41,13 +42,13 @@ export class ModuSign {
   public async getDocuments(
     documentsListLookUpParams: MODUSIGN_PARMAS.DocumentsListLookUpParams
   ) {
-    return await this.apiHelper.get('documents', {
+    return await this.apiHelper.get(ModuSignPath.documents, {
       params: { ...documentsListLookUpParams },
     });
   }
 
   public async lookUpUsage(from: string, to: string) {
-    return await this.apiHelper.get('usages', {
+    return await this.apiHelper.get(ModuSignPath.usages, {
       params: {
         from,
         to,
@@ -61,7 +62,7 @@ export class ModuSign {
     metadatas?: string,
     filter?: string
   ) {
-    return await this.apiHelper.get('templates', {
+    return await this.apiHelper.get(ModuSignPath.templates, {
       params: {
         offset,
         limit,
@@ -74,16 +75,15 @@ export class ModuSign {
   // @Jihoon
   // 실제 documentId가 없이는 statusCode 테스트가 안됨
   public async remindSignIng(documentId: number | string) {
-    return await this.apiHelper.get(`documents`, {
-      additionalPath: `/${documentId}/remind-signing`,
-    });
+    return await this.apiHelper.get(ModuSignPath.remindSigning(documentId));
   }
 
   // @Jihoon
   // 실제 documentId가 없이는 statusCode 테스트가 안됨
   public async lookUpParticipantFields(documentId: number | string) {
-    return await this.apiHelper.get('documents', {
-      additionalPath: `/${documentId}/participant-fields`,
-    });
+    return await this.apiHelper.get(
+      ModuSignPath['participant-fields'](documentId),
+      {}
+    );
   }
 }

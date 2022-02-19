@@ -1,24 +1,17 @@
+import { TModuSignConstructorParams } from '.';
 import axios from 'axios';
-import { TModuSignConstructorParams, TParams } from '.';
-import { ModuSignPaths } from './path';
 
-interface IAPIHelper {
-  get: (pathey: ModuSignPaths.apiPaths, params: TParams) => any;
-  post: (pathey: ModuSignPaths.apiPaths, params: TParams) => any;
-  // put: (pathey: ModuSignPaths.apiPaths, params: TParams) => any;
-  // delete: (pathey: ModuSignPaths.apiPaths, params: TParams) => any;
-}
-
-type TConfig = {
+type FireProp = {
+  method: 'post' | 'get';
   params?: any;
-  additionalPath?: string;
 };
 
-export class APIHelper implements IAPIHelper {
+export class APIHelper {
   private hashApiKey: string;
   private apiKey: string;
   private email: string;
   public showLog = false;
+  private host = 'https://api.modusign.co.kr';
 
   constructor({
     apiKey = process.env.MODU_SIGN_API_KEY,
@@ -46,57 +39,55 @@ export class APIHelper implements IAPIHelper {
     return this.toBasic64(this.email + ':' + this.apiKey);
   }
 
-  public async post(pathKey: ModuSignPaths.apiPaths, config: TConfig) {
-    const { params, additionalPath = '' } = config;
-    this.log('endPoint:', ModuSignPaths.get(pathKey) + additionalPath);
-    const result = await axios
-      .post(ModuSignPaths.get(pathKey) + additionalPath, params, {
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${this.hashApiKey}`,
-        },
-      })
-      .catch(e => {
-        console.error('erorr', e);
-        console.error('response.data', e.response.data);
-      })
-      .then(r => r);
+  private getHeadOf(method: 'post' | 'get') {
+    const baseHead = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${this.hashApiKey}`,
+    };
 
-    if (!result) throw Error('result is not exsit');
-    this.log('data::', params);
-    this.log('call-result::', result);
-
-    const resultData = result.data;
-    const statusCode = result.status;
-    this.log('resultData', resultData);
-    return { resultData, statusCode };
+    if (method === 'post') {
+      return baseHead;
+    } else {
+      //@ts-ignore
+      delete baseHead['Content-Type'];
+      return baseHead;
+    }
   }
 
-  public async get(pathKey: ModuSignPaths.apiPaths, config: TConfig) {
-    const { params = {}, additionalPath = '' } = config;
-    this.log('endPoint:', ModuSignPaths.get(pathKey) + additionalPath);
-    const result = await axios
-      .get(ModuSignPaths.get(pathKey) + additionalPath, {
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Basic ${this.hashApiKey}`,
-        },
-        params,
-      })
-      .catch(e => {
-        console.error('erorr', e);
-        console.error('response.data', e.response.data);
-      })
-      .then(r => r);
+  public async post(path: string, props: Omit<FireProp, 'method'>) {
+    this.fire(path, { ...props, method: 'post' });
+  }
+  public async get(path: string, props?: Omit<FireProp, 'method'>) {
+    this.fire(path, { ...props, method: 'get' });
+  }
+  private async fire(apiEndPoint: string, props: FireProp) {
+    const path = this.host + apiEndPoint;
+    const { method } = props;
+    this.log('endPoint:', path);
+
+    let axiosParams: any[] = [];
+    const headers = this.getHeadOf(method);
+
+    if (props.method === 'post') {
+      axiosParams = [props.params, { headers }];
+    } else {
+      axiosParams = [{ headers, params: props.params }];
+    }
+
+    const result = await axios[method](path, ...axiosParams).catch((e) => {
+      console.error('erorr', e);
+      console.error('response.data', e.response.data);
+    });
 
     if (!result) throw Error('result is not exsit');
-    this.log('data::', params);
+    this.log('data::', axiosParams);
     this.log('call-result::', result);
 
     const resultData = result.data;
     const statusCode = result.status;
     this.log('resultData', resultData);
+
     return { resultData, statusCode };
   }
 }

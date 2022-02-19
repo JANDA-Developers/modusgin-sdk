@@ -12,6 +12,16 @@ export declare module MODUSIGN {
 
   type TEmail = string;
 
+  type ModuSignApiResult = {
+    resultData: any;
+    statusCode: number;
+  };
+
+  type requesterInput = {
+    dataLabel: string;
+    value: string;
+  };
+
   type TParticipant = {
     role: string; //  템플릿에서 설정한 role
     excluded: boolean; // 템플릿에 적용해 둔 참여자를 제외시킬지 여부
@@ -29,6 +39,7 @@ export declare module MODUSIGN {
 
 export declare module MODUSIGN_PARMAS {
   type TempalteSendDocument = {
+    requesterInputMappings: MODUSIGN.requesterInput[];
     participantMappings: MODUSIGN.TParticipant[];
     title: string;
     fileOpenPassword?: string;
